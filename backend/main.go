@@ -2,9 +2,12 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 )
 
 func main () {
+	config.ConnectDB()
+
 	r := gin.Default()
 
 	r.GET("/ping", func(c *gin.Context) {

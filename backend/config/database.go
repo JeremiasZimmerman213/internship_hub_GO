@@ -10,7 +10,7 @@ import (
 
 var DB *gorm.DB
 
-func connectDB() {
+func ConnectDB() {
 	host := "localhost"
 	port := "5433"
 	user := "tracker_user"
