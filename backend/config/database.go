@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/models"
 )
 
 var DB *gorm.DB
@@ -29,4 +30,6 @@ func ConnectDB() {
 
 	fmt.Println("Connected to PostgreSQL DB successfully.")
 	DB = database
+
+	DB.AutoMigrate(&models.Application{})
 }
