@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
 )
 
 func main () {
@@ -15,6 +16,12 @@ func main () {
 			"message": "pong",
 		})
 	})
+
+	r.GET("/applications", controllers.GetApplications)
+	r.GET("/applications/:id", controllers.GetApplicationByID)
+	r.POST("/applications", controllers.CreateApplication)
+	r.PUT("/applications/:id", controllers.UpdateApplication)
+	r.DELETE("/applications/:id", controllers.DeleteApplication)
 
 	r.Run(":8080")
 }
