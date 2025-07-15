@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/handlers"
 )
 
 func main () {
@@ -22,6 +23,8 @@ func main () {
 	r.POST("/applications", controllers.CreateApplication)
 	r.PUT("/applications/:id", controllers.UpdateApplication)
 	r.DELETE("/applications/:id", controllers.DeleteApplication)
+
+	r.POST("/register", handlers.RegisterUser)
 
 	r.Run(":8080")
 }
