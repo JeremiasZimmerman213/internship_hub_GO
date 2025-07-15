@@ -1,0 +1,13 @@
+package models
+
+import "time"
+
+type Application struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Company     string    `json:"company"`
+	Position    string    `json:"position"`
+	Status      string    `json:"status"` // e.g., "Applied", "Interview", etc.
+	Location    string    `json:"location"`
+	AppliedDate time.Time `json:"applied_date"`
+	ResumeURL   string    `json:"resume_url"`
+}
