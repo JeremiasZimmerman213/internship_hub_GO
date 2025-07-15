@@ -18,7 +18,7 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	var existing models.User
-	if err := config.DB.Where("username = ?", input.Username).First(&existing).Error; err != nil {
+	if err := config.DB.Where("username = ?", input.Username).First(&existing).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already taken"})
 		return
 	}
