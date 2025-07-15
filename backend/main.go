@@ -25,6 +25,7 @@ func main () {
 	r.DELETE("/applications/:id", controllers.DeleteApplication)
 
 	r.POST("/register", handlers.RegisterUser)
+	r.POST("/login", controllers.Login)
 
 	r.Run(":8080")
 }
