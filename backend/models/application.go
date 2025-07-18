@@ -10,6 +10,6 @@ type Application struct {
 	Location    string    `json:"location"`
 	AppliedDate time.Time `json:"applied_date"`
 	ResumeURL   string    `json:"resume_url"`
-	UserID      uint      `json:"user_id"`
-	User        User      `gorm:"foreignKey:UserID" json:"user"`
+	UserID      uint      `json:"user_id"`                                 // Set automatically by server
+	User        User      `gorm:"foreignKey:UserID" json:"user,omitempty"` // Only in responses
 }
