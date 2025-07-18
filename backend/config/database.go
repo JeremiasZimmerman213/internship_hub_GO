@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -11,12 +12,19 @@ import (
 
 var DB *gorm.DB
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func ConnectDB() {
-	host := "localhost"
-	port := "5433"
-	user := "tracker_user"
-	password := "tracker_pass"
-	db_name := "internship_tracker"
+	host := getEnvOrDefault("DB_HOST", "localhost")
+	port := getEnvOrDefault("DB_PORT", "5433")
+	user := getEnvOrDefault("DB_USER", "tracker_user")
+	password := getEnvOrDefault("DB_PASSWORD", "tracker_pass")
+	db_name := getEnvOrDefault("DB_NAME", "internship_tracker")
 
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",

@@ -1,14 +1,34 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/handlers"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func main() {
+	// Load .env file if it exists (for development)
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
+	// Validate environment configuration
+	config.ValidateEnv()
+	config.PrintConfig()
+
 	config.ConnectDB()
 
 	r := gin.Default()
@@ -36,5 +56,6 @@ func main() {
 		auth.DELETE("/applications/:id", controllers.DeleteApplication)
 	}
 
-	r.Run(":8080")
+	port := getEnvOrDefault("PORT", "8080")
+	r.Run(":" + port)
 }
