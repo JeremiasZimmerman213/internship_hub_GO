@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
@@ -26,11 +27,19 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Debug: Log the password comparison (remove in production)
+	fmt.Printf("DEBUG: Comparing passwords for user %s\n", user.Username)
+	fmt.Printf("DEBUG: Stored hash length: %d\n", len(user.Password))
+	fmt.Printf("DEBUG: Input password: %s\n", input.Password)
+
 	// Compare password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		fmt.Printf("DEBUG: Password comparison failed: %v\n", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
+
+	fmt.Printf("DEBUG: Password comparison succeeded\n")
 
 	// Generate JWT
 	token, err := utils.GenerateJWT(user.Username)
