@@ -48,13 +48,18 @@ func main() {
 	r.POST("/register", handlers.RegisterUser)
 	r.POST("/login", controllers.Login)
 
-	auth := r.Group("/")
-	auth.Use(middleware.AuthMiddleware())
-	{
-		auth.POST("/applications", controllers.CreateApplication)
-		auth.PUT("/applications/:id", controllers.UpdateApplication)
-		auth.DELETE("/applications/:id", controllers.DeleteApplication)
-	}
+	r.POST("/applications", controllers.CreateApplication)
+	r.PUT("/applications/:id", controllers.UpdateApplication)
+	r.DELETE("/applications/:id", controllers.DeleteApplication)
+
+	// Auth middleware and protected routes are disabled for now
+	// auth := r.Group("/")
+	// auth.Use(middleware.AuthMiddleware())
+	// {
+	//     auth.POST("/applications", controllers.CreateApplication)
+	//     auth.PUT("/applications/:id", controllers.UpdateApplication)
+	//     auth.DELETE("/applications/:id", controllers.DeleteApplication)
+	// }
 
 	port := getEnvOrDefault("PORT", "8080")
 	r.Run(":" + port)
