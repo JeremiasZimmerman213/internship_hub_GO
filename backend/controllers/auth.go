@@ -31,6 +31,9 @@ func Login(c *gin.Context) {
 	fmt.Printf("DEBUG: Comparing passwords for user %s\n", user.Username)
 	fmt.Printf("DEBUG: Stored hash length: %d\n", len(user.Password))
 	fmt.Printf("DEBUG: Input password: %s\n", input.Password)
+	fmt.Printf("=========================================\n")
+	fmt.Println(input.Password)
+	fmt.Printf("=========================================\n")
 
 	// Compare password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
