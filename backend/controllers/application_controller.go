@@ -1,11 +1,16 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/models"
 	"github.com/gin-gonic/gin"
+
+	"fmt"
+	"os"
+	"time"
 )
 
 func GetApplications(c *gin.Context) {
@@ -28,81 +33,64 @@ func GetApplicationByID(c *gin.Context) {
 }
 
 func CreateApplication(c *gin.Context) {
-	var app models.Application
-	if err := c.ShouldBindJSON(&app); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
+
+	if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body too large (Max 5MB)"})
 		return
 	}
 
-	// Auth is disabled: just set UserID to 1 for now
-	app.UserID = 1
-	// The following code is commented out for now:
-	// // Get the authenticated user from middleware
-	// user, exists := c.Get("user")
-	// if !exists {
-	//     c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
-	//     return
-	// }
-	// // Type assertion to get the user struct
-	// authenticatedUser, ok := user.(models.User)
-	// if !ok {
-	//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
-	//     return
-	// }
-	// // Associate the application with the authenticated user
-	// app.UserID = authenticatedUser.ID
+	file, fileHeader, err := c.Request.FormFile("resume")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Resume PDF is required"})
+		return
+	}
 
-	// Create the application with error checking
+	defer file.Close()
+
+	if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
+	fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
+		return
+	}
+
+	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+	uploadPath := "../uploads/" + filename
+
+	out, err := os.Create(uploadPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file: " + err.Error()})
+		return
+	}
+
+	defer out.Close()
+	if _, err := io.Copy(out, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+		return
+	}
+	
+	appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+		return
+	}
+
+	app := models.Application{
+		Company:    c.PostForm("company"),
+		Position:   c.PostForm("position"),
+		Status:    c.PostForm("status"),
+		Location:  c.PostForm("location"),
+		AppliedDate: appliedDate,
+		ResumeURL: "/uploads/" + filename,
+		UserID: 1, // Hardcoded for now, replace with authenticated user ID later
+	}
+
 	if err := config.DB.Create(&app).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, app)
-}
-
-func UpdateApplication(c *gin.Context) {
-	id := c.Param("id")
-	var app models.Application
-
-	if err := config.DB.First(&app, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
-		return
-	}
-
-	// Auth is disabled: skip user context and ownership checks
-	// The following code is commented out for now:
-	// // Get the authenticated user from middleware
-	// user, exists := c.Get("user")
-	// if !exists {
-	//     c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
-	//     return
-	// }
-	// authenticatedUser, ok := user.(models.User)
-	// if !ok {
-	//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
-	//     return
-	// }
-	// // Check if the application belongs to the authenticated user
-	// if app.UserID != authenticatedUser.ID {
-	//     c.JSON(http.StatusForbidden, gin.H{"error": "You can only update your own applications"})
-	//     return
-	// }
-
-	if err := c.ShouldBindJSON(&app); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Auth is disabled: don't overwrite UserID
-	// app.UserID = authenticatedUser.ID
-
-	if err := config.DB.Save(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, app)
 }
 
 func DeleteApplication(c *gin.Context) {
