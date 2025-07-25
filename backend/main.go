@@ -49,7 +49,7 @@ func main() {
 	r.POST("/login", controllers.Login)
 
 	r.POST("/applications", controllers.CreateApplication)
-	r.PUT("/applications/:id", controllers.UpdateApplication)
+	// r.PUT("/applications/:id", controllers.UpdateApplication)
 	r.DELETE("/applications/:id", controllers.DeleteApplication)
 
 	// Auth middleware and protected routes are disabled for now
