@@ -7,7 +7,7 @@ import (
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/handlers"
-	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/middleware"
+	// "github.com/JeremiasZimmerman213/internship_hub_GO/backend/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
