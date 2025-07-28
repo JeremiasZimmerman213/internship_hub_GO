@@ -55,7 +55,7 @@ func CreateApplication(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
-	uploadPath := "../uploads/" + filename
+	uploadPath := "./uploads/" + filename
 
 	out, err := os.Create(uploadPath)
 	if err != nil {
@@ -123,6 +123,12 @@ func DeleteApplication(c *gin.Context) {
 
 	if err := config.DB.Delete(&app).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete application: " + err.Error()})
+		return
+	}
+
+	os.Remove("." + app.ResumeURL) // Remove the uploaded file
+	if err := os.Remove("." + app.ResumeURL); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete resume file: " + err.Error()})
 		return
 	}
 
