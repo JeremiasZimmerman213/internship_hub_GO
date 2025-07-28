@@ -61,6 +61,8 @@ func main() {
 	//     auth.DELETE("/applications/:id", controllers.DeleteApplication)
 	// }
 
+	r.Static("/uploads", "./uploads")
+
 	port := getEnvOrDefault("PORT", "8080")
 	r.Run(":" + port)
 }
