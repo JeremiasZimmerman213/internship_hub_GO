@@ -78,11 +78,13 @@ func CreateApplication(c *gin.Context) {
 	app := models.Application{
 		Company:    c.PostForm("company"),
 		Position:   c.PostForm("position"),
-		Status:    c.PostForm("status"),
-		Location:  c.PostForm("location"),
+		Status:     c.PostForm("status"),
+		Location:   c.PostForm("location"),
 		AppliedDate: appliedDate,
-		ResumeURL: "/uploads/" + filename,
-		UserID: 1, // Hardcoded for now, replace with authenticated user ID later
+		Term:       c.PostForm("term"),
+		Note:       c.PostForm("note"),
+		ResumeURL:  "/uploads/" + filename,
+		UserID:     1, // Hardcoded for now, replace with authenticated user ID later
 	}
 
 	if err := config.DB.Create(&app).Error; err != nil {
