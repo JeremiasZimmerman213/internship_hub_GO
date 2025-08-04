@@ -49,7 +49,7 @@ func CreateApplication(c *gin.Context) {
 	defer file.Close()
 
 	if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
-	fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
+		fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
 		return
 	}
@@ -68,23 +68,39 @@ func CreateApplication(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
 		return
 	}
-	
+
 	appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
 		return
 	}
 
+	// Parse status as integer (ApplicationStatus)
+	statusInt := c.PostForm("status")
+	var status models.ApplicationStatus
+	if statusInt == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
+		return
+	}
+	// Convert string to uint8
+	var statusVal uint8
+	_, err = fmt.Sscanf(statusInt, "%d", &statusVal)
+	if err != nil || statusVal > uint8(models.StatusRejected) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
+		return
+	}
+	status = models.ApplicationStatus(statusVal)
+
 	app := models.Application{
-		Company:    c.PostForm("company"),
-		Position:   c.PostForm("position"),
-		Status:     c.PostForm("status"),
-		Location:   c.PostForm("location"),
+		Company:     c.PostForm("company"),
+		Position:    c.PostForm("position"),
+		Status:      status,
+		Location:    c.PostForm("location"),
 		AppliedDate: appliedDate,
-		Term:       c.PostForm("term"),
-		Note:       c.PostForm("note"),
-		ResumeURL:  "/uploads/" + filename,
-		UserID:     1, // Hardcoded for now, replace with authenticated user ID later
+		Term:        c.PostForm("term"),
+		Note:        c.PostForm("note"),
+		ResumeURL:   "/uploads/" + filename,
+		UserID:      1, // Hardcoded for now, replace with authenticated user ID later
 	}
 
 	if err := config.DB.Create(&app).Error; err != nil {
