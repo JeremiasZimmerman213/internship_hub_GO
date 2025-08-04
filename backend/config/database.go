@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/models"
 )
 
 var DB *gorm.DB
