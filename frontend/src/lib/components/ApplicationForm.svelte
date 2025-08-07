@@ -3,14 +3,16 @@
   
   export let onSubmit: (formData: FormData) => Promise<void> = async () => {};
   export let isLoading = false;
+  export let initialData: any = null; // For edit mode
+  export let isEditMode = false;
   
-  let company = '';
-  let position = '';
-  let status = 0; // Default to "Applied"
-  let location = '';
-  let appliedDate = new Date().toISOString().split('T')[0]; // Default to today's date
-  let term = '';
-  let note = '';
+  let company = initialData?.company || '';
+  let position = initialData?.position || '';
+  let status = initialData?.status ?? 0;
+  let location = initialData?.location || '';
+  let appliedDate = initialData?.applied_date ? new Date(initialData.applied_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  let term = initialData?.term || '';
+  let note = initialData?.note || '';
   let resumeFile: File | null = null;
   let error = '';
   let fileInputElement: HTMLInputElement;
@@ -45,7 +47,8 @@
       error = 'Term is required.';
       return false;
     }
-    if (!resumeFile) {
+    // In edit mode, resume is optional (user might not want to change it)
+    if (!isEditMode && !resumeFile) {
       error = 'Resume PDF is required.';
       return false;
     }
@@ -91,13 +94,25 @@
   }
 
   function resetForm() {
-    company = '';
-    position = '';
-    status = 0;
-    location = '';
-    appliedDate = new Date().toISOString().split('T')[0];
-    term = '';
-    note = '';
+    if (isEditMode && initialData) {
+      // Reset to initial values
+      company = initialData.company || '';
+      position = initialData.position || '';
+      status = initialData.status ?? 0;
+      location = initialData.location || '';
+      appliedDate = initialData.applied_date ? new Date(initialData.applied_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      term = initialData.term || '';
+      note = initialData.note || '';
+    } else {
+      // Reset to empty values
+      company = '';
+      position = '';
+      status = 0;
+      location = '';
+      appliedDate = new Date().toISOString().split('T')[0];
+      term = '';
+      note = '';
+    }
     resumeFile = null;
     error = '';
     if (fileInputElement) {
@@ -204,22 +219,36 @@
   </div>
 
   <div class="mb-3">
-    <label for="resume" class="form-label">Resume (PDF) *</label>
+    <label for="resume" class="form-label">Resume (PDF) {isEditMode ? '' : '*'}</label>
     <input 
       type="file" 
       class="form-control" 
       id="resume" 
       accept=".pdf"
-      required 
+      required={!isEditMode}
       disabled={isLoading}
       bind:this={fileInputElement}
       on:change={handleFileChange}
     />
-    <div class="form-text">Max file size: 5MB. Only PDF files are allowed.</div>
+    <div class="form-text">
+      Max file size: 5MB. Only PDF files are allowed.
+      {#if isEditMode}
+        Leave empty to keep current resume.
+      {/if}
+    </div>
     {#if resumeFile}
       <div class="mt-2">
         <small class="text-success">
           ✓ Selected: {resumeFile.name} ({(resumeFile.size / 1024 / 1024).toFixed(2)} MB)
+        </small>
+      </div>
+    {:else if isEditMode && initialData?.resume_url}
+      <div class="mt-2">
+        <small class="text-info">
+          Current resume: 
+          <a href="http://localhost:8080{initialData.resume_url}" target="_blank" class="text-decoration-none">
+            View current PDF
+          </a>
         </small>
       </div>
     {/if}
@@ -238,9 +267,9 @@
     >
       {#if isLoading}
         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-        Creating...
+        {isEditMode ? 'Updating...' : 'Creating...'}
       {:else}
-        Create Application
+        {isEditMode ? 'Update Application' : 'Create Application'}
       {/if}
     </button>
     <button 
