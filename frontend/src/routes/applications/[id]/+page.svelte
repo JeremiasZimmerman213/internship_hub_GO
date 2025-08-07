@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import { getApplication, deleteApplication } from "$lib/services/apiService";
+    import { apiService } from "$lib/services/apiService";
 
     let application: any = null;
     let loading = true;
@@ -40,7 +40,7 @@
                 error = "Application ID is required";
                 return;
             }
-            application = await getApplication(id);
+            application = await apiService.getApplication(id);
         } catch (err) {
             error =
                 err instanceof Error
@@ -63,7 +63,7 @@
 
         try {
             deleteLoading = true;
-            await deleteApplication(application.id);
+            await apiService.deleteApplication(application.id);
             goto("/applications");
         } catch (err) {
             error =
