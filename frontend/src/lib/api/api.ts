@@ -53,3 +53,22 @@ export async function deleteApplication(id: string | number) {
   }
   return { success: true };
 }
+
+
+/**
+ * @param {string | number} id
+ * @param {FormData} formData
+ */
+export async function updateApplication(id: string | number, formData: FormData) {
+    const response = await fetch(`${API_BASE_URL}/applications/${id}`, {
+        method: 'PUT',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+}

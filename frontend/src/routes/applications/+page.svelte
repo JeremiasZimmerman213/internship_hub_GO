@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import ApplicationCard from "$lib/components/ApplicationCard.svelte";
     import { getApplications, deleteApplication } from "$lib/api/api.js";
+    import { goto } from "$app/navigation";
 
     let applications: any[] = [];
     let loading = true;
@@ -143,10 +144,15 @@
                     </thead>
                     <tbody>
                         {#each applications as application (application.id)}
-                            <tr style="background-color: #EEF1FF;">
-                                <td class="fw-semibold" style="color: #4b4b4b;"
-                                    >{application.company}</td
-                                >
+                            <tr
+                                style="background-color: #EEF1FF; cursor: pointer;"
+                                on:click={() =>
+                                    goto(`/applications/${application.id}`)}
+                                class="clickable-row"
+                            >
+                                <td class="fw-semibold" style="color: #4b4b4b;">
+                                    {application.company}
+                                </td>
                                 <td>{application.position}</td>
                                 <td>
                                     <span
@@ -159,7 +165,9 @@
                                                 ? 'success'
                                                 : 'danger'}"
                                     >
-                                        {statusLabels[application.status as keyof typeof statusLabels]}
+                                        {statusLabels[
+                                            application.status as keyof typeof statusLabels
+                                        ]}
                                     </span>
                                 </td>
                                 <td>{application.location}</td>
@@ -167,22 +175,37 @@
                                 <td>{application.term}</td>
                                 <td>
                                     <div class="d-flex gap-1">
+                                        <button
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Edit Application"
+                                            aria-label="Edit Application"
+                                            on:click|stopPropagation={() => goto(`/applications/${application.id}/edit`)}
+                                        >
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         {#if application.resume_url}
                                             <a
                                                 href="http://localhost:8080{application.resume_url}"
                                                 target="_blank"
-                                                class="btn btn-sm btn-outline-primary"
+                                                class="btn btn-sm btn-outline-info"
                                                 title="View Resume"
                                                 aria-label="View Resume PDF"
+                                                on:click|stopPropagation
                                             >
                                                 <i class="bi bi-file-pdf"></i>
                                             </a>
                                         {/if}
                                         <button
                                             class="btn btn-sm btn-outline-danger"
-                                            on:click={() => {
-                                                if (confirm(`Are you sure you want to delete the application for ${application.position} at ${application.company}? This action cannot be undone.`)) {
-                                                    handleDelete(application.id);
+                                            on:click|stopPropagation={() => {
+                                                if (
+                                                    confirm(
+                                                        `Are you sure you want to delete the application for ${application.position} at ${application.company}? This action cannot be undone.`,
+                                                    )
+                                                ) {
+                                                    handleDelete(
+                                                        application.id,
+                                                    );
                                                 }
                                             }}
                                             disabled={deleteLoading}
@@ -286,5 +309,15 @@
 
     .btn:hover {
         background-color: #aac4ff !important;
+    }
+
+    .clickable-row:hover {
+        background-color: #d6dbff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(177, 178, 255, 0.2);
+    }
+
+    .clickable-row {
+        transition: all 0.2s ease;
     }
 </style>
