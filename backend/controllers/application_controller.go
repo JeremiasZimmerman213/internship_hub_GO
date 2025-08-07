@@ -15,7 +15,7 @@ import (
 
 func GetApplications(c *gin.Context) {
 	var applications []models.Application
-	config.DB.Find(&applications)
+	config.DB.Order("applied_date DESC, company ASC").Find(&applications)
 	c.JSON(http.StatusOK, applications)
 }
 
