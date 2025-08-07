@@ -8,7 +8,7 @@
   let position = '';
   let status = 0; // Default to "Applied"
   let location = '';
-  let appliedDate = '';
+  let appliedDate = new Date().toISOString().split('T')[0]; // Default to today's date
   let term = '';
   let note = '';
   let resumeFile: File | null = null;
@@ -95,7 +95,7 @@
     position = '';
     status = 0;
     location = '';
-    appliedDate = '';
+    appliedDate = new Date().toISOString().split('T')[0];
     term = '';
     note = '';
     resumeFile = null;
