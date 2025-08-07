@@ -120,33 +120,37 @@ func DeleteApplication(c *gin.Context) {
 		return
 	}
 
-	// Auth is disabled: skip user context and ownership checks
-	// The following code is commented out for now:
-	// // Get the authenticated user from middleware
-	// user, exists := c.Get("user")
-	// if !exists {
-	//     c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
-	//     return
-	// }
-	// authenticatedUser, ok := user.(models.User)
-	// if !ok {
-	//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
-	//     return
-	// }
-	// // Check if the application belongs to the authenticated user
-	// if app.UserID != authenticatedUser.ID {
-	//     c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own applications"})
-	//     return
-	// }
+	// Try to delete the file first before deleting from database
+	// This ensures if file deletion fails, we don't delete from DB
+	if app.ResumeURL != "" {
+		// The ResumeURL is stored as "/uploads/filename.pdf"
+		// We need to construct the actual file path as "./uploads/filename.pdf"
+		filePath := "." + app.ResumeURL
 
-	if err := config.DB.Delete(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete application: " + err.Error()})
-		return
+		// Add logging to debug the file path
+		fmt.Printf("DEBUG: Attempting to delete file at path: %s\n", filePath)
+		fmt.Printf("DEBUG: Resume URL from DB: %s\n", app.ResumeURL)
+
+		// Check if file exists before trying to delete
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			fmt.Printf("DEBUG: File does not exist at path: %s\n", filePath)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Resume file not found on server: " + filePath})
+			return
+		}
+
+		// Try to delete the file
+		if err := os.Remove(filePath); err != nil {
+			fmt.Printf("DEBUG: Failed to delete file %s: %v\n", filePath, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete resume file: " + err.Error()})
+			return
+		}
+
+		fmt.Printf("DEBUG: Successfully deleted file: %s\n", filePath)
 	}
 
-	os.Remove("." + app.ResumeURL) // Remove the uploaded file
-	if err := os.Remove("." + app.ResumeURL); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete resume file: " + err.Error()})
+	// Only delete from database if file deletion succeeded (or if no file to delete)
+	if err := config.DB.Delete(&app).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete application: " + err.Error()})
 		return
 	}
 
