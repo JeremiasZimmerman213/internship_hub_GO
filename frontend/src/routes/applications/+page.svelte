@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import ApplicationCard from "$lib/components/ApplicationCard.svelte";
-    import { getApplications, deleteApplication } from "$lib/services/apiService";
+    import { apiService } from "$lib/services/apiService";
     import { goto } from "$app/navigation";
 
     let applications: any[] = [];
@@ -28,7 +28,7 @@
         try {
             loading = true;
             error = "";
-            applications = await getApplications();
+            applications = await apiService.getApplications();
         } catch (err) {
             error =
                 err instanceof Error
@@ -45,7 +45,7 @@
 
         try {
             deleteLoading = true;
-            await deleteApplication(id);
+            await apiService.deleteApplication(id);
             // Remove the deleted application from the list
             applications = applications.filter((app) => app.id !== id);
         } catch (err) {

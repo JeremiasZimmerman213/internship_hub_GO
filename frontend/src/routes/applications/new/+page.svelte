@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import ApplicationForm from '$lib/components/ApplicationForm.svelte';
-  import { createApplication } from '$lib/services/apiService';
+  import { apiService } from '$lib/services/apiService';
   
   let isLoading = false;
   let successMessage = '';
@@ -13,7 +13,7 @@
     successMessage = '';
     
     try {
-      const result = await createApplication(formData);
+      const result = await apiService.createApplication(formData);
       successMessage = 'Application created successfully!';
       
       // Redirect to applications page after a short delay

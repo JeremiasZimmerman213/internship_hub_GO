@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import ApplicationForm from "$lib/components/ApplicationForm.svelte";
-    import { getApplication, updateApplication } from "$lib/services/apiService";
+    import { apiService } from "$lib/services/apiService";
 
     let application: any = null;
     let isLoading = false;
@@ -20,7 +20,7 @@
                 errorMessage = "Application ID is required";
                 return;
             }
-            application = await getApplication(id);
+            application = await apiService.getApplication(id);
         } catch (err) {
             errorMessage =
                 err instanceof Error
@@ -40,7 +40,7 @@
         successMessage = "";
 
         try {
-            const result = await updateApplication(application.id, formData);
+            const result = await apiService.updateApplication(application.id, formData);
             successMessage = "Application updated successfully!";
 
             // Redirect to application details page after a short delay
