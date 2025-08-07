@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import { getApplication, deleteApplication } from "$lib/api/api.js";
+    import { getApplication, deleteApplication } from "$lib/services/apiService";
 
     let application: any = null;
     let loading = true;

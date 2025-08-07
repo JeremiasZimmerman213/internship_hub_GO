@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import ApplicationForm from "$lib/components/ApplicationForm.svelte";
-    import { getApplication, updateApplication } from "$lib/api/api.js";
+    import { getApplication, updateApplication } from "$lib/services/apiService";
 
     let application: any = null;
     let isLoading = false;

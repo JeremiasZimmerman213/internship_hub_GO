@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import ApplicationCard from "$lib/components/ApplicationCard.svelte";
-    import { getApplications, deleteApplication } from "$lib/api/api.js";
+    import { getApplications, deleteApplication } from "$lib/services/apiService";
     import { goto } from "$app/navigation";
 
     let applications: any[] = [];

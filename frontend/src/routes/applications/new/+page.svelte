@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import ApplicationForm from '$lib/components/ApplicationForm.svelte';
-  import { createApplication } from '$lib/api/api.js';
+  import { createApplication } from '$lib/services/apiService';
   
   let isLoading = false;
   let successMessage = '';
