@@ -25,6 +25,7 @@
             <a class="nav-link" href="/applications/new" style="color: #2d2d2d;">Add New</a>
           </li>
           <li class="nav-item dropdown">
+            <!-- svelte-ignore a11y_invalid_attribute -->
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #2d2d2d;">
               Welcome, {$authStore.user?.username}
             </a>
@@ -57,7 +58,7 @@ nav.navbar {
   transition: background 0.2s, color 0.2s;
   border-radius: 4px;
 }
-.nav-link:hover, .nav-link.active {
+.nav-link:hover {
   background-color: #AAC4FF;
   color: #2d2d2d;
 }
