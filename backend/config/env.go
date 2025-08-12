@@ -6,6 +6,15 @@ import (
 	"os"
 )
 
+func GetJWTSecret() string {
+    secret := os.Getenv("JWT_SECRET")
+    if secret == "" {
+        log.Println("Warning: JWT_SECRET not set, using default (not secure for production)")
+        return "default-jwt-secret-change-in-production"
+    }
+    return secret
+}
+
 // ValidateEnv checks that all required environment variables are set
 func ValidateEnv() {
 	requiredEnvVars := []string{

@@ -13,245 +13,281 @@ import (
 	"time"
 )
 
+func getCurrentUser(c *gin.Context) (*models.User, error) {
+    userInterface, exists := c.Get("currentUser")
+    if !exists {
+        return nil, fmt.Errorf("user not found in context")
+    }
+    
+    user, ok := userInterface.(models.User)
+    if !ok {
+        return nil, fmt.Errorf("invalid user type in context")
+    }
+    
+    return &user, nil
+}
+
 func GetApplications(c *gin.Context) {
-	var applications []models.Application
-	config.DB.Order("applied_date DESC, company ASC").Find(&applications)
-	c.JSON(http.StatusOK, applications)
+    user, err := getCurrentUser(c)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    var applications []models.Application
+    config.DB.Where("user_id = ?", user.ID).Order("applied_date DESC, company ASC").Find(&applications)
+    c.JSON(http.StatusOK, applications)
 }
 
 func GetApplicationByID(c *gin.Context) {
-	id := c.Param("id")
+    user, err := getCurrentUser(c)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
-	var application models.Application
+    id := c.Param("id")
+    var application models.Application
 
-	if err := config.DB.First(&application, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
-		return
-	}
+    if err := config.DB.Where("id = ? AND user_id = ?", id, user.ID).First(&application).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+        return
+    }
 
-	c.JSON(http.StatusOK, application)
+    c.JSON(http.StatusOK, application)
 }
 
 func CreateApplication(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
+    user, err := getCurrentUser(c)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
-	if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body too large (Max 5MB)"})
-		return
-	}
+    c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
 
-	file, fileHeader, err := c.Request.FormFile("resume")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Resume PDF is required"})
-		return
-	}
+    if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Request body too large (Max 5MB)"})
+        return
+    }
 
-	defer file.Close()
+    file, fileHeader, err := c.Request.FormFile("resume")
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Resume PDF is required"})
+        return
+    }
 
-	if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
-		fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
-		return
-	}
+    defer file.Close()
 
-	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
-	uploadPath := "./uploads/" + filename
+    if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
+        fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
+        return
+    }
 
-	out, err := os.Create(uploadPath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file: " + err.Error()})
-		return
-	}
+    filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+    uploadPath := "./uploads/" + filename
 
-	defer out.Close()
-	if _, err := io.Copy(out, file); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
-		return
-	}
+    out, err := os.Create(uploadPath)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file: " + err.Error()})
+        return
+    }
 
-	appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
-		return
-	}
+    defer out.Close()
+    if _, err := io.Copy(out, file); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+        return
+    }
 
-	// Parse status as integer (ApplicationStatus)
-	statusInt := c.PostForm("status")
-	var status models.ApplicationStatus
-	if statusInt == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
-		return
-	}
-	// Convert string to uint8
-	var statusVal uint8
-	_, err = fmt.Sscanf(statusInt, "%d", &statusVal)
-	if err != nil || statusVal > uint8(models.StatusRejected) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
-		return
-	}
-	status = models.ApplicationStatus(statusVal)
+    appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+        return
+    }
 
-	app := models.Application{
-		Company:     c.PostForm("company"),
-		Position:    c.PostForm("position"),
-		Status:      status,
-		Location:    c.PostForm("location"),
-		AppliedDate: appliedDate,
-		Term:        c.PostForm("term"),
-		Note:        c.PostForm("note"),
-		ResumeURL:   "/uploads/" + filename,
-		UserID:      1, // Hardcoded for now, replace with authenticated user ID later
-	}
+    // Parse status as integer (ApplicationStatus)
+    statusInt := c.PostForm("status")
+    var status models.ApplicationStatus
+    if statusInt == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
+        return
+    }
+    // Convert string to uint8
+    var statusVal uint8
+    _, err = fmt.Sscanf(statusInt, "%d", &statusVal)
+    if err != nil || statusVal > uint8(models.StatusRejected) {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
+        return
+    }
+    status = models.ApplicationStatus(statusVal)
 
-	if err := config.DB.Create(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application: " + err.Error()})
-		return
-	}
+    app := models.Application{
+        Company:     c.PostForm("company"),
+        Position:    c.PostForm("position"),
+        Status:      status,
+        Location:    c.PostForm("location"),
+        AppliedDate: appliedDate,
+        Term:        c.PostForm("term"),
+        Note:        c.PostForm("note"),
+        ResumeURL:   "/uploads/" + filename,
+        UserID:      user.ID, // Use authenticated user's ID
+    }
 
-	c.JSON(http.StatusCreated, app)
+    if err := config.DB.Create(&app).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application: " + err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusCreated, app)
 }
 
 func DeleteApplication(c *gin.Context) {
-	id := c.Param("id")
-	var app models.Application
+    user, err := getCurrentUser(c)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
-	if err := config.DB.First(&app, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
-		return
-	}
+    id := c.Param("id")
+    var app models.Application
 
-	// Try to delete the file first before deleting from database
-	// This ensures if file deletion fails, we don't delete from DB
-	if app.ResumeURL != "" {
-		// The ResumeURL is stored as "/uploads/filename.pdf"
-		// We need to construct the actual file path as "./uploads/filename.pdf"
-		filePath := "." + app.ResumeURL
+    if err := config.DB.Where("id = ? AND user_id = ?", id, user.ID).First(&app).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+        return
+    }
 
-		// Add logging to debug the file path
-		fmt.Printf("DEBUG: Attempting to delete file at path: %s\n", filePath)
-		fmt.Printf("DEBUG: Resume URL from DB: %s\n", app.ResumeURL)
+    // Try to delete the file first before deleting from database
+    if app.ResumeURL != "" {
+        filePath := "." + app.ResumeURL
 
-		// Check if file exists before trying to delete
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			fmt.Printf("DEBUG: File does not exist at path: %s\n", filePath)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Resume file not found on server: " + filePath})
-			return
-		}
+        fmt.Printf("DEBUG: Attempting to delete file at path: %s\n", filePath)
+        fmt.Printf("DEBUG: Resume URL from DB: %s\n", app.ResumeURL)
 
-		// Try to delete the file
-		if err := os.Remove(filePath); err != nil {
-			fmt.Printf("DEBUG: Failed to delete file %s: %v\n", filePath, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete resume file: " + err.Error()})
-			return
-		}
+        if _, err := os.Stat(filePath); os.IsNotExist(err) {
+            fmt.Printf("DEBUG: File does not exist at path: %s\n", filePath)
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Resume file not found on server: " + filePath})
+            return
+        }
 
-		fmt.Printf("DEBUG: Successfully deleted file: %s\n", filePath)
-	}
+        if err := os.Remove(filePath); err != nil {
+            fmt.Printf("DEBUG: Failed to delete file %s: %v\n", filePath, err)
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete resume file: " + err.Error()})
+            return
+        }
 
-	// Only delete from database if file deletion succeeded (or if no file to delete)
-	if err := config.DB.Delete(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete application: " + err.Error()})
-		return
-	}
+        fmt.Printf("DEBUG: Successfully deleted file: %s\n", filePath)
+    }
 
-	c.JSON(http.StatusOK, gin.H{"message": "Application deleted successfully"})
+    if err := config.DB.Delete(&app).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete application: " + err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Application deleted successfully"})
 }
 
 func UpdateApplication(c *gin.Context) {
-	id := c.Param("id")
-	var app models.Application
+    user, err := getCurrentUser(c)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
-	// Find the existing application
-	if err := config.DB.First(&app, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
-		return
-	}
+    id := c.Param("id")
+    var app models.Application
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
+    // Find the existing application (user-specific)
+    if err := config.DB.Where("id = ? AND user_id = ?", id, user.ID).First(&app).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+        return
+    }
 
-	if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body too large (Max 5MB)"})
-		return
-	}
+    c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 5<<20)
 
-	// Handle optional file upload (new resume)
-	file, fileHeader, err := c.Request.FormFile("resume")
-	var newResumeURL string
-	if err == nil {
-		// New file uploaded, validate and save it
-		defer file.Close()
+    if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Request body too large (Max 5MB)"})
+        return
+    }
 
-		if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
-			fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
-			return
-		}
+    // Handle optional file upload (new resume)
+    file, fileHeader, err := c.Request.FormFile("resume")
+    var newResumeURL string
+    if err == nil {
+        // New file uploaded, validate and save it
+        defer file.Close()
 
-		filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
-		uploadPath := "./uploads/" + filename
+        if fileHeader.Header.Get("Content-Type") != "application/pdf" &&
+            fileHeader.Filename[len(fileHeader.Filename)-4:] != ".pdf" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Only PDF files are allowed"})
+            return
+        }
 
-		out, err := os.Create(uploadPath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file: " + err.Error()})
-			return
-		}
+        filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+        uploadPath := "./uploads/" + filename
 
-		defer out.Close()
-		if _, err := io.Copy(out, file); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
-			return
-		}
+        out, err := os.Create(uploadPath)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create file: " + err.Error()})
+            return
+        }
 
-		// Delete old resume file if it exists
-		if app.ResumeURL != "" {
-			oldFilePath := "." + app.ResumeURL
-			if err := os.Remove(oldFilePath); err != nil {
-				fmt.Printf("Warning: Failed to delete old resume file %s: %v\n", oldFilePath, err)
-			}
-		}
+        defer out.Close()
+        if _, err := io.Copy(out, file); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+            return
+        }
 
-		newResumeURL = "/uploads/" + filename
-	} else {
-		// No new file uploaded, keep existing resume URL
-		newResumeURL = app.ResumeURL
-	}
+        // Delete old resume file if it exists
+        if app.ResumeURL != "" {
+            oldFilePath := "." + app.ResumeURL
+            if err := os.Remove(oldFilePath); err != nil {
+                fmt.Printf("Warning: Failed to delete old resume file %s: %v\n", oldFilePath, err)
+            }
+        }
 
-	// Parse applied date
-	appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
-		return
-	}
+        newResumeURL = "/uploads/" + filename
+    } else {
+        // No new file uploaded, keep existing resume URL
+        newResumeURL = app.ResumeURL
+    }
 
-	// Parse status
-	statusInt := c.PostForm("status")
-	var status models.ApplicationStatus
-	if statusInt == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
-		return
-	}
-	var statusVal uint8
-	_, err = fmt.Sscanf(statusInt, "%d", &statusVal)
-	if err != nil || statusVal > uint8(models.StatusRejected) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
-		return
-	}
-	status = models.ApplicationStatus(statusVal)
+    // Parse applied date
+    appliedDate, err := time.Parse(time.RFC3339, c.PostForm("applied_date"))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+        return
+    }
 
-	// Update the application
-	app.Company = c.PostForm("company")
-	app.Position = c.PostForm("position")
-	app.Status = status
-	app.Location = c.PostForm("location")
-	app.AppliedDate = appliedDate
-	app.Term = c.PostForm("term")
-	app.Note = c.PostForm("note")
-	app.ResumeURL = newResumeURL
+    // Parse status
+    statusInt := c.PostForm("status")
+    var status models.ApplicationStatus
+    if statusInt == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
+        return
+    }
+    var statusVal uint8
+    _, err = fmt.Sscanf(statusInt, "%d", &statusVal)
+    if err != nil || statusVal > uint8(models.StatusRejected) {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
+        return
+    }
+    status = models.ApplicationStatus(statusVal)
 
-	if err := config.DB.Save(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application: " + err.Error()})
-		return
-	}
+    // Update the application
+    app.Company = c.PostForm("company")
+    app.Position = c.PostForm("position")
+    app.Status = status
+    app.Location = c.PostForm("location")
+    app.AppliedDate = appliedDate
+    app.Term = c.PostForm("term")
+    app.Note = c.PostForm("note")
+    app.ResumeURL = newResumeURL
 
-	c.JSON(http.StatusOK, app)
+    if err := config.DB.Save(&app).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application: " + err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, app)
 }

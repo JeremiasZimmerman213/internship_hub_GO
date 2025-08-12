@@ -6,9 +6,8 @@ import (
 
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
-	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/handlers"
 
-	// "github.com/JeremiasZimmerman213/internship_hub_GO/backend/middleware"
+	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -38,33 +37,22 @@ func main() {
 	// Add CORS middleware (allow all origins for now)
 	r.Use(cors.Default())
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	r.POST("/auth/signup", controllers.CreateUser)
+	r.POST("/auth/login", controllers.Login)
 
-	r.GET("/applications", controllers.GetApplications)
-	r.GET("/applications/:id", controllers.GetApplicationByID)
-	// r.POST("/applications", controllers.CreateApplication)
-	// r.PUT("/applications/:id", controllers.UpdateApplication)
-	// r.DELETE("/applications/:id", controllers.DeleteApplication)
-
-	r.POST("/register", handlers.RegisterUser)
-	r.POST("/login", controllers.Login)
-
-	r.POST("/applications", controllers.CreateApplication)
-	r.PUT("/applications/:id", controllers.UpdateApplication)
-	r.DELETE("/applications/:id", controllers.DeleteApplication)
-
-	// Auth middleware and protected routes are disabled for now
-	// auth := r.Group("/")
-	// auth.Use(middleware.AuthMiddleware())
-	// {
-	//     auth.POST("/applications", controllers.CreateApplication)
-	//     auth.PUT("/applications/:id", controllers.UpdateApplication)
-	//     auth.DELETE("/applications/:id", controllers.DeleteApplication)
-	// }
+	protected := r.Group("/")
+	protected.Use(middleware.CheckAuth)
+    {
+        // User profile
+        protected.GET("/user/profile", controllers.GetUserProfile)
+        
+        // Application routes - all protected and user-specific
+        protected.GET("/applications", controllers.GetApplications)
+        protected.GET("/applications/:id", controllers.GetApplicationByID)
+        protected.POST("/applications", controllers.CreateApplication)
+        protected.PUT("/applications/:id", controllers.UpdateApplication)
+        protected.DELETE("/applications/:id", controllers.DeleteApplication)
+	}
 
 	r.Static("/uploads", "./uploads")
 

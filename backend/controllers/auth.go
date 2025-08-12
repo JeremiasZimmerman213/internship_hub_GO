@@ -1,55 +1,90 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/models"
-	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(c *gin.Context) {
-	var input models.User
-	var user models.User
+func CreateUser(c *gin.Context) {
 
-	// Parse incoming JSON body
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	var authInput models.AuthInput
+
+	if err := c.ShouldBindJSON(&authInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Look up the user
-	if err := config.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+	var userFound models.User
+	config.DB.Where("username=?", authInput.Username).Find(&userFound)
+
+	if userFound.ID != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username already used"})
 		return
 	}
 
-	// Debug: Log the password comparison (remove in production)
-	fmt.Printf("DEBUG: Comparing passwords for user %s\n", user.Username)
-	fmt.Printf("DEBUG: Stored hash length: %d\n", len(user.Password))
-	fmt.Printf("DEBUG: Input password: %s\n", input.Password)
-	fmt.Printf("=========================================\n")
-	fmt.Println(input.Password)
-	fmt.Printf("=========================================\n")
-
-	// Compare password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		fmt.Printf("DEBUG: Password comparison failed: %v\n", err)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
-		return
-	}
-
-	fmt.Printf("DEBUG: Password comparison succeeded\n")
-
-	// Generate JWT
-	token, err := utils.GenerateJWT(user.Username)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(authInput.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	user := models.User{
+		Username: authInput.Username,
+		Password: string(passwordHash),
+	}
+
+	config.DB.Create(&user)
+
+	c.JSON(http.StatusOK, gin.H{"data": user})
+}
+
+func Login(c *gin.Context) {
+	var authInput models.AuthInput
+
+	if err := c.ShouldBindJSON(&authInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var userFound models.User
+	config.DB.Where("username=?", authInput.Username).Find(&userFound)
+
+	if userFound.ID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(userFound.Password), []byte(authInput.Password)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
+		return
+	}
+
+	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id":  userFound.ID,
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	token, err := generateToken.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to generate token"})
+	}
+
+	c.JSON(200, gin.H{
+		"token": token,
+	})
+}
+
+func GetUserProfile(c *gin.Context) {
+	user, _ := c.Get("currentUser")
+	c.JSON(200, gin.H{
+		"user": user,
+	})
 }
