@@ -1,7 +1,8 @@
 import type { Application, ApiResponse, LoadingState } from '$lib/types/application';
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+import { authStore } from '$lib/stores/authStore';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Global loading state store
 export const globalLoading = writable<LoadingState>({
@@ -29,11 +30,19 @@ class ApiService {
         }
 
         try {
+            // Get auth token from store
+            const authState = get(authStore);
+            const authHeaders: Record<string, string> = {};
+            
+            if (authState.token) {
+                authHeaders['Authorization'] = `Bearer ${authState.token}`;
+            }
+
             const response = await fetch(url, {
                 ...options,
                 headers: {
+                    ...authHeaders,
                     ...options.headers,
-                    // Add any default headers here (like authentication)
                 },
             });
 

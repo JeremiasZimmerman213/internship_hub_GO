@@ -2,8 +2,15 @@
 <script lang="ts">
 	import '../app.css';
 	import Navbar from '$lib/components/Navbar.svelte';
+	import { onMount } from 'svelte';
+	import { authActions } from '$lib/stores/authStore';
 
 	let { children } = $props();
+
+	// Initialize auth state when app loads
+	onMount(() => {
+		authActions.init();
+	});
 </script>
 
 

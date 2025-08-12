@@ -1,5 +1,11 @@
-<script>
-  // No props or state needed for static header
+<script lang="ts">
+  import { authStore, authActions } from '$lib/stores/authStore';
+  import { goto } from '$app/navigation';
+
+  function handleLogout() {
+    authActions.logout();
+    goto('/login');
+  }
 </script>
 
 <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #B1B2FF;">
@@ -10,15 +16,28 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="/applications" style="color: #2d2d2d;">Applications</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/applications/new" style="color: #2d2d2d;">Add New</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/login" style="color: #2d2d2d;">Login</a>
-        </li>
+        {#if $authStore.isAuthenticated}
+          <!-- Authenticated user menu -->
+          <li class="nav-item">
+            <a class="nav-link" href="/applications" style="color: #2d2d2d;">Applications</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/applications/new" style="color: #2d2d2d;">Add New</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #2d2d2d;">
+              Welcome, {$authStore.user?.username}
+            </a>
+            <ul class="dropdown-menu">
+              <li><button class="dropdown-item" on:click={handleLogout}>Logout</button></li>
+            </ul>
+          </li>
+        {:else}
+          <!-- Non-authenticated user menu -->
+          <li class="nav-item">
+            <a class="nav-link" href="/login" style="color: #2d2d2d;">Login</a>
+          </li>
+        {/if}
       </ul>
     </div>
   </div>
@@ -41,5 +60,14 @@ nav.navbar {
 .nav-link:hover, .nav-link.active {
   background-color: #AAC4FF;
   color: #2d2d2d;
+}
+.dropdown-item {
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.dropdown-item:hover {
+  background-color: #f8f9fa;
 }
 </style>

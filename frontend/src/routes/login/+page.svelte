@@ -1,32 +1,58 @@
 
 <script lang="ts">
+  import { goto } from '$app/navigation';
+  import { authService } from '$lib/services/authService';
+  import { authStore } from '$lib/stores/authStore';
+  
   let isLogin = true;
-  let email = '';
+  let username = '';
   let password = '';
   let confirmPassword = '';
   let error = '';
+  let isLoading = false;
 
   function toggleMode() {
     isLogin = !isLogin;
     error = '';
-    email = '';
+    username = '';
     password = '';
     confirmPassword = '';
   }
 
-  function handleSubmit(event: Event) {
+  async function handleSubmit(event: Event) {
     event.preventDefault();
     error = '';
-    if (!email || !password) {
+    
+    if (!username || !password) {
       error = 'Please fill in all required fields.';
       return;
     }
+    
     if (!isLogin && password !== confirmPassword) {
       error = 'Passwords do not match.';
       return;
     }
-    // Placeholder: Add backend integration here
-    alert(isLogin ? 'Login submitted!' : 'Registration submitted!');
+
+    isLoading = true;
+    
+    try {
+      if (isLogin) {
+        // Login
+        await authService.login({ username, password });
+        goto('/applications'); // Redirect to applications page
+      } else {
+        // Register
+        await authService.register({ username, password });
+        alert('Registration successful! Please log in.');
+        isLogin = true; // Switch to login mode
+        password = '';
+        confirmPassword = '';
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'An error occurred';
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 
@@ -37,8 +63,8 @@
     </h2>
     <form on:submit|preventDefault={handleSubmit}>
       <div class="mb-3">
-        <label for="email" class="form-label">Email address</label>
-        <input type="email" class="form-control" id="email" bind:value={email} required autocomplete="username" />
+        <label for="username" class="form-label">Username</label>
+        <input type="text" class="form-control" id="username" bind:value={username} required autocomplete="username" />
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
@@ -53,7 +79,10 @@
       {#if error}
         <div class="alert alert-danger py-2">{error}</div>
       {/if}
-      <button type="submit" class="btn w-100 mb-2" style="background-color: #B1B2FF; color: #2d2d2d; font-weight: 600;">
+      <button type="submit" class="btn w-100 mb-2" style="background-color: #B1B2FF; color: #2d2d2d; font-weight: 600;" disabled={isLoading}>
+        {#if isLoading}
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        {/if}
         {isLogin ? 'Login' : 'Register'}
       </button>
     </form>
