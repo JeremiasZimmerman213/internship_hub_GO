@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/config"
 	"github.com/JeremiasZimmerman213/internship_hub_GO/backend/controllers"
@@ -35,8 +36,19 @@ func main() {
 	r := gin.Default()
 
 	// Add CORS middleware with proper configuration
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+
+	// Add additional origins from environment variable for network access
+	if extraOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); extraOrigins != "" {
+		// Split by comma and add to allowed origins
+		origins := strings.Split(extraOrigins, ",")
+		for _, origin := range origins {
+			allowedOrigins = append(allowedOrigins, strings.TrimSpace(origin))
+		}
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
