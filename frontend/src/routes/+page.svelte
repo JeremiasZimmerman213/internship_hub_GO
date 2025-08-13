@@ -1,18 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
     import { authStore } from '$lib/stores/authStore';
-
-    onMount(() => {
-        // Redirect authenticated users to applications
-        const unsubscribe = authStore.subscribe(state => {
-            if (state.isAuthenticated) {
-                goto('/applications');
-            }
-        });
-
-        return unsubscribe;
-    });
 </script>
 
 <div class="container mt-5">
@@ -20,10 +7,18 @@
         <div class="col-lg-8 text-center">
             <div class="mb-5">
                 <h1 class="display-4 fw-bold mb-3" style="color: #4b4b4b;">
-                    Welcome to Internship Hub
+                    {#if $authStore.isAuthenticated}
+                        Welcome back, {$authStore.user?.username}!
+                    {:else}
+                        Welcome to Internship Hub
+                    {/if}
                 </h1>
                 <p class="lead text-muted mb-4">
-                    Track and manage your internship applications in one place
+                    {#if $authStore.isAuthenticated}
+                        Ready to manage your internship applications?
+                    {:else}
+                        Track and manage your internship applications in one place
+                    {/if}
                 </p>
             </div>
 
@@ -58,16 +53,31 @@
             </div>
 
             <div class="mb-4">
-                <a 
-                    href="/login" 
-                    class="btn btn-lg me-3"
-                    style="background-color: #B1B2FF; color: #2d2d2d; font-weight: 600;"
-                >
-                    Get Started
-                </a>
-                <a href="/login" class="btn btn-outline-secondary btn-lg">
-                    Learn More
-                </a>
+                {#if $authStore.isAuthenticated}
+                    <!-- Authenticated user buttons -->
+                    <a 
+                        href="/applications" 
+                        class="btn btn-lg me-3"
+                        style="background-color: #B1B2FF; color: #2d2d2d; font-weight: 600;"
+                    >
+                        View Applications
+                    </a>
+                    <a href="/applications/new" class="btn btn-outline-secondary btn-lg">
+                        Add New Application
+                    </a>
+                {:else}
+                    <!-- Non-authenticated user buttons -->
+                    <a 
+                        href="/login" 
+                        class="btn btn-lg me-3"
+                        style="background-color: #B1B2FF; color: #2d2d2d; font-weight: 600;"
+                    >
+                        Get Started
+                    </a>
+                    <a href="/login" class="btn btn-outline-secondary btn-lg">
+                        Learn More
+                    </a>
+                {/if}
             </div>
         </div>
     </div>
