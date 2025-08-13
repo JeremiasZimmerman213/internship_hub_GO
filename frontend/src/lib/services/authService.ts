@@ -1,6 +1,7 @@
 import { authActions, type User } from '$lib/stores/authStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+console.log('AuthService API_BASE_URL:', API_BASE_URL);
 
 export interface LoginCredentials {
     username: string;

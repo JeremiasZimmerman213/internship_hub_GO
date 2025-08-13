@@ -34,28 +34,35 @@ func main() {
 
 	r := gin.Default()
 
-	// Add CORS middleware (allow all origins for now)
-	r.Use(cors.Default())
+	// Add CORS middleware with proper configuration
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	r.POST("/auth/signup", controllers.CreateUser)
 	r.POST("/auth/login", controllers.Login)
 
 	protected := r.Group("/")
 	protected.Use(middleware.CheckAuth)
-    {
-        // User profile
-        protected.GET("/user/profile", controllers.GetUserProfile)
-        
-        // Application routes - all protected and user-specific
-        protected.GET("/applications", controllers.GetApplications)
-        protected.GET("/applications/:id", controllers.GetApplicationByID)
-        protected.POST("/applications", controllers.CreateApplication)
-        protected.PUT("/applications/:id", controllers.UpdateApplication)
-        protected.DELETE("/applications/:id", controllers.DeleteApplication)
+	{
+		// User profile
+		protected.GET("/user/profile", controllers.GetUserProfile)
+
+		// Application routes - all protected and user-specific
+		protected.GET("/applications", controllers.GetApplications)
+		protected.GET("/applications/:id", controllers.GetApplicationByID)
+		protected.POST("/applications", controllers.CreateApplication)
+		protected.PUT("/applications/:id", controllers.UpdateApplication)
+		protected.DELETE("/applications/:id", controllers.DeleteApplication)
 	}
 
 	r.Static("/uploads", "./uploads")
 
 	port := getEnvOrDefault("PORT", "8080")
-	r.Run(":" + port)
+	// r.Run(":" + port)
+	r.Run("0.0.0.0:" + port)
 }
