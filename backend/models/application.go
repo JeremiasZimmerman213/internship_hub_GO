@@ -6,8 +6,9 @@ type ApplicationStatus uint8
 
 const (
 	StatusApplied ApplicationStatus = iota
-	StatusInterview
-	StatusOfferReceived
+	StatusOAReceived
+	StatusInterviewing
+	StatusAccepted
 	StatusRejected
 )
 
@@ -15,12 +16,14 @@ func (s ApplicationStatus) String() string {
 	switch s {
 	case StatusApplied:
 		return "Applied"
-	case StatusInterview:
-		return "Interview"
+	case StatusOAReceived:
+		return "OA Received"
+	case StatusInterviewing:
+		return "Interviewing"
+	case StatusAccepted:
+		return "Accepted"
 	case StatusRejected:
 		return "Rejected"
-	case StatusOfferReceived:
-		return "Offer Received"
 	default:
 		return "Unknown"
 	}

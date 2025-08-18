@@ -13,9 +13,10 @@ export interface Application {
 
 export enum ApplicationStatus {
     Applied = 0,
-    Interview = 1,
-    OfferReceived = 2,
-    Rejected = 3
+    OAReceived = 1,
+    Interviewing = 2,
+    Accepted = 3,
+    Rejected = 4
 }
 
 export interface LoadingState {
@@ -30,6 +31,9 @@ export interface ApiResponse<T = any> {
 }
 
 export const STATUS_COLORS = {
-    [ApplicationStatus.OfferReceived]: 'success',
+    [ApplicationStatus.Applied]: 'primary',
+    [ApplicationStatus.OAReceived]: 'info',
+    [ApplicationStatus.Interviewing]: 'warning',
+    [ApplicationStatus.Accepted]: 'success',
     [ApplicationStatus.Rejected]: 'danger'
 };

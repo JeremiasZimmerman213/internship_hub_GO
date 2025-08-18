@@ -19,9 +19,10 @@
 
   const statusOptions = [
     { value: 0, label: 'Applied' },
-    { value: 1, label: 'Interview' },
-    { value: 2, label: 'Offer Received' },
-    { value: 3, label: 'Rejected' }
+    { value: 1, label: 'OA Received' },
+    { value: 2, label: 'Interviewing' },
+    { value: 3, label: 'Accepted' },
+    { value: 4, label: 'Rejected' }
   ];
 
   function validateForm(): boolean {

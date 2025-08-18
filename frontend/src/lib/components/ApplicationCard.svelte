@@ -6,9 +6,18 @@
 
     const statusLabels = {
         0: "Applied",
-        1: "Interview",
-        2: "Offer Received",
-        3: "Rejected",
+        1: "OA Received",
+        2: "Interviewing",
+        3: "Accepted",
+        4: "Rejected",
+    };
+
+    const statusColors = {
+        0: "primary",
+        1: "info",
+        2: "warning",
+        3: "success",
+        4: "danger",
     };
 
     function formatDate(dateString: string) {
@@ -39,13 +48,9 @@
                 {application.company}
             </h5>
             <span
-                class="badge bg-{application.status === 0
-                    ? 'primary'
-                    : application.status === 1
-                        ? 'warning'
-                        : application.status === 2
-                            ? 'success'
-                            : 'danger'}"
+                class="badge bg-{statusColors[
+                    application.status as keyof typeof statusColors
+                ]} fs-6"
             >
                 {statusLabels[application.status as keyof typeof statusLabels]}
             </span>

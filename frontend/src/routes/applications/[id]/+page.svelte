@@ -11,16 +11,18 @@
 
     const statusLabels = {
         0: "Applied",
-        1: "Interview",
-        2: "Offer Received",
-        3: "Rejected",
+        1: "OA Received",
+        2: "Interviewing",
+        3: "Accepted",
+        4: "Rejected",
     };
 
     const statusColors = {
         0: "primary",
-        1: "warning",
-        2: "success",
-        3: "danger",
+        1: "info",
+        2: "warning",
+        3: "success",
+        4: "danger",
     };
 
     function formatDate(dateString: string) {
