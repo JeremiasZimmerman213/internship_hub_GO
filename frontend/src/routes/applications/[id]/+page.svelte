@@ -280,7 +280,7 @@
                                         `/applications/${application.id}/edit`,
                                     )}
                             >
-                                <i class="bi bi-pencil"></i>Edit
+                                <i class="bi bi-pencil me-2"></i>Edit
                             </button>
                             <button
                                 class="btn btn-outline-danger d-flex align-items-center justify-content-center"
@@ -293,7 +293,7 @@
                                         role="status"
                                     ></span>
                                 {:else}
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-trash me-2"></i>
                                 {/if}
                                 Delete
                             </button>
