@@ -8,6 +8,7 @@
   let loading = true;
   let error = "";
   let deleteLoading = false;
+  let updatingStatuses: Set<number> = new Set(); // Track which applications are being updated
 
   const statusLabels = {
     0: "Applied",
@@ -24,6 +25,14 @@
     3: "success",
     4: "danger",
   };
+
+  const statusOptions = [
+    { value: 0, label: 'Applied' },
+    { value: 1, label: 'OA Received' },
+    { value: 2, label: 'Interviewing' },
+    { value: 3, label: 'Accepted' },
+    { value: 4, label: 'Rejected' }
+  ];
 
   function formatDate(dateString: string) {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -44,6 +53,36 @@
       console.error("Error loading applications:", err);
     } finally {
       loading = false;
+    }
+  }
+
+  async function updateApplicationStatus(applicationId: number, newStatus: number) {
+    console.log(`Updating application ${applicationId} to status ${newStatus}`);
+    
+    try {
+      // Add to updating set to show loading state
+      updatingStatuses.add(applicationId);
+      updatingStatuses = updatingStatuses; // Trigger reactivity
+
+      console.log('Calling API service...');
+      // Update the status via API
+      const result = await apiService.updateApplicationStatus(applicationId, newStatus);
+      console.log('API call successful:', result);
+      
+      // Update the local state
+      applications = applications.map(app => 
+        app.id === applicationId 
+          ? { ...app, status: newStatus }
+          : app
+      );
+    } catch (err) {
+      console.error('Full error object:', err);
+      error = err instanceof Error ? err.message : "Failed to update application status";
+      console.error("Error updating application status:", err);
+    } finally {
+      // Remove from updating set
+      updatingStatuses.delete(applicationId);
+      updatingStatuses = updatingStatuses; // Trigger reactivity
     }
   }
 
@@ -154,16 +193,32 @@
                   {application.company}
                 </td>
                 <td>{application.position}</td>
-                <td>
-                  <span
-                    class="badge bg-{statusColors[
-                      application.status as keyof typeof statusColors
-                    ]}"
-                  >
-                    {statusLabels[
-                      application.status as keyof typeof statusLabels
-                    ]}
-                  </span>
+                <td on:click|stopPropagation>
+                  <div class="status-dropdown">
+                    {#if updatingStatuses.has(application.id)}
+                      <span class="badge bg-secondary">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        Updating...
+                      </span>
+                    {:else}
+                      <select
+                        class="form-select form-select-sm status-select bg-{statusColors[
+                          application.status as keyof typeof statusColors
+                        ]}"
+                        value={application.status}
+                        on:change={(e) => {
+                          const target = e.target as HTMLSelectElement | null;
+                          if (target) {
+                            updateApplicationStatus(application.id, parseInt(target.value));
+                          }
+                        }}
+                      >
+                        {#each statusOptions as option}
+                          <option value={option.value}>{option.label}</option>
+                        {/each}
+                      </select>
+                    {/if}
+                  </div>
                 </td>
                 <td>{application.location}</td>
                 <td>{formatDate(application.applied_date)}</td>
@@ -222,7 +277,7 @@
       <div class="row g-3">
         {#each applications as application (application.id)}
           <div class="col-12">
-            <ApplicationCard {application} onDelete={handleDelete} />
+            <ApplicationCard {application} onDelete={handleDelete} onStatusUpdate={updateApplicationStatus} />
           </div>
         {/each}
       </div>
@@ -310,5 +365,52 @@
 
   .clickable-row {
     transition: all 0.2s ease;
+  }
+
+  /* Status Dropdown Styles */
+  .status-dropdown {
+    min-width: 140px;
+  }
+
+  .status-select {
+    border: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: white !important;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .status-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(177, 178, 255, 0.25);
+    border-color: #B1B2FF;
+  }
+
+  .status-select option {
+    background-color: white;
+    color: #495057;
+  }
+
+  /* Status-specific colors for selects */
+  .status-select.bg-primary {
+    background-color: #0d6efd !important;
+  }
+
+  .status-select.bg-info {
+    background-color: #0dcaf0 !important;
+  }
+
+  .status-select.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+  }
+
+  .status-select.bg-success {
+    background-color: #198754 !important;
+  }
+
+  .status-select.bg-danger {
+    background-color: #dc3545 !important;
   }
 </style>

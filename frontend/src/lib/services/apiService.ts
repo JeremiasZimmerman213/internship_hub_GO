@@ -25,6 +25,7 @@ class ApiService {
         showGlobalLoading = false
     ): Promise<T> {
         const url = `${this.baseURL}${endpoint}`;
+        console.log(`API: Making ${options.method || 'GET'} request to: ${url}`);
 
         if (showGlobalLoading) {
             globalLoading.update(state => ({ ...state, isLoading: true, error: null }));
@@ -99,6 +100,21 @@ class ApiService {
         });
     }
 
+    async updateApplicationStatus(id: string | number, status: number): Promise<Application> {
+        console.log(`API: updateApplicationStatus called with id=${id}, status=${status}`);
+        const endpoint = `/applications/${id}/status`;
+        console.log(`API: Making PATCH request to ${endpoint}`);
+        console.log(`API: Request body:`, JSON.stringify({ status }));
+        
+        return this.request<Application>(endpoint, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+        });
+    }
+
     async deleteApplication(id: string | number): Promise<{ success: boolean }> {
         return this.request<{ success: boolean }>(`/applications/${id}`, {
             method: 'DELETE',
@@ -125,5 +141,6 @@ export const {
     getApplication,
     createApplication,
     updateApplication,
+    updateApplicationStatus,
     deleteApplication,
 } = apiService;

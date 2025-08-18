@@ -49,7 +49,7 @@ func main() {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -69,6 +69,7 @@ func main() {
 		protected.GET("/applications/:id", controllers.GetApplicationByID)
 		protected.POST("/applications", controllers.CreateApplication)
 		protected.PUT("/applications/:id", controllers.UpdateApplication)
+		protected.PATCH("/applications/:id/status", controllers.UpdateApplicationStatus)
 		protected.DELETE("/applications/:id", controllers.DeleteApplication)
 	}
 

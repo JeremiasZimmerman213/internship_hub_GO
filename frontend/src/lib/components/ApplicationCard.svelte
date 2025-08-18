@@ -3,6 +3,7 @@
     
     export let application: any;
     export let onDelete: (id: number) => Promise<void>;
+    export let onStatusUpdate: ((id: number, status: number) => Promise<void>) | undefined = undefined;
 
     const statusLabels = {
         0: "Applied",
@@ -19,6 +20,14 @@
         3: "success",
         4: "danger",
     };
+
+    const statusOptions = [
+        { value: 0, label: 'Applied' },
+        { value: 1, label: 'OA Received' },
+        { value: 2, label: 'Interviewing' },
+        { value: 3, label: 'Accepted' },
+        { value: 4, label: 'Rejected' }
+    ];
 
     function formatDate(dateString: string) {
         return new Date(dateString).toLocaleDateString("en-US", {
@@ -47,13 +56,35 @@
             <h5 class="card-title mb-1" style="color: #4b4b4b;">
                 {application.company}
             </h5>
-            <span
-                class="badge bg-{statusColors[
-                    application.status as keyof typeof statusColors
-                ]} fs-6"
-            >
-                {statusLabels[application.status as keyof typeof statusLabels]}
-            </span>
+            {#if onStatusUpdate}
+                <div class="status-dropdown-mobile">
+                    <select
+                        class="form-select form-select-sm status-select bg-{statusColors[
+                            application.status as keyof typeof statusColors
+                        ]}"
+                        value={application.status}
+                        on:change={(e) => {
+                            const target = e.target as HTMLSelectElement | null;
+                            if (onStatusUpdate && target) {
+                                onStatusUpdate(application.id, parseInt(target.value));
+                            }
+                        }}
+                        on:click|stopPropagation
+                    >
+                        {#each statusOptions as option}
+                            <option value={option.value}>{option.label}</option>
+                        {/each}
+                    </select>
+                </div>
+            {:else}
+                <span
+                    class="badge bg-{statusColors[
+                        application.status as keyof typeof statusColors
+                    ]} fs-6"
+                >
+                    {statusLabels[application.status as keyof typeof statusLabels]}
+                </span>
+            {/if}
         </div>
 
         <h6 class="card-subtitle mb-2 text-muted">{application.position}</h6>
@@ -131,5 +162,30 @@
 
     .btn-sm {
         font-size: 0.8rem;
+    }
+
+    /* Mobile Status Dropdown */
+    .status-dropdown-mobile {
+        min-width: 130px;
+    }
+
+    .status-dropdown-mobile .status-select {
+        border: none;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: white !important;
+        cursor: pointer;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        min-width: 120px;
+    }
+
+    .status-dropdown-mobile .status-select:focus {
+        box-shadow: 0 0 0 0.2rem rgba(177, 178, 255, 0.25);
+    }
+
+    .status-dropdown-mobile .status-select option {
+        background-color: white;
+        color: #495057;
     }
 </style>
