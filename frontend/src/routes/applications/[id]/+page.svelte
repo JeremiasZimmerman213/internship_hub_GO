@@ -3,11 +3,15 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { apiService } from "$lib/services/apiService";
+    import ConfirmDeleteModal from "$lib/components/ConfirmDeleteModal.svelte";
 
     let application: any = null;
     let loading = true;
     let error = "";
     let deleteLoading = false;
+    
+    // Modal state
+    let isDeleteModalOpen = false;
 
     const statusLabels = {
         0: "Applied",
@@ -54,14 +58,16 @@
         }
     }
 
-    async function handleDelete() {
+    function showDeleteConfirmation() {
+        isDeleteModalOpen = true;
+    }
+
+    function handleDeleteCancel() {
+        isDeleteModalOpen = false;
+    }
+
+    async function handleDeleteConfirm() {
         if (deleteLoading || !application) return;
-
-        const confirmed = confirm(
-            `Are you sure you want to delete the application for ${application.position} at ${application.company}? This action cannot be undone.`,
-        );
-
-        if (!confirmed) return;
 
         try {
             deleteLoading = true;
@@ -75,6 +81,7 @@
             console.error("Error deleting application:", err);
         } finally {
             deleteLoading = false;
+            isDeleteModalOpen = false;
         }
     }
 
@@ -286,7 +293,7 @@
                             </button>
                             <button
                                 class="btn btn-outline-danger d-flex align-items-center justify-content-center"
-                                on:click={handleDelete}
+                                on:click={showDeleteConfirmation}
                                 disabled={deleteLoading}
                             >
                                 {#if deleteLoading}
@@ -315,6 +322,16 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDeleteModal
+    bind:show={isDeleteModalOpen}
+    applicationPosition={application ? application.position : ""}
+    applicationCompany={application ? application.company : ""}
+    on:confirm={handleDeleteConfirm}
+    on:cancel={handleDeleteCancel}
+    isLoading={deleteLoading}
+/>
 
 <style>
     .detail-item {

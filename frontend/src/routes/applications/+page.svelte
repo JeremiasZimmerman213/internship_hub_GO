@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import ApplicationCard from "$lib/components/ApplicationCard.svelte";
+  import ConfirmDeleteModal from "$lib/components/ConfirmDeleteModal.svelte";
   import { apiService } from "$lib/services/apiService";
   import { goto } from "$app/navigation";
 
@@ -9,6 +10,10 @@
   let error = "";
   let deleteLoading = false;
   let updatingStatuses: Set<number> = new Set(); // Track which applications are being updated
+
+  // Modal state
+  let showDeleteModal = false;
+  let applicationToDelete: any = null;
 
   const statusLabels = {
     0: "Applied",
@@ -27,11 +32,11 @@
   };
 
   const statusOptions = [
-    { value: 0, label: 'Applied' },
-    { value: 1, label: 'OA Received' },
-    { value: 2, label: 'Interviewing' },
-    { value: 3, label: 'Accepted' },
-    { value: 4, label: 'Rejected' }
+    { value: 0, label: "Applied" },
+    { value: 1, label: "OA Received" },
+    { value: 2, label: "Interviewing" },
+    { value: 3, label: "Accepted" },
+    { value: 4, label: "Rejected" },
   ];
 
   function formatDate(dateString: string) {
@@ -56,28 +61,35 @@
     }
   }
 
-  async function updateApplicationStatus(applicationId: number, newStatus: number) {
+  async function updateApplicationStatus(
+    applicationId: number,
+    newStatus: number
+  ) {
     console.log(`Updating application ${applicationId} to status ${newStatus}`);
-    
+
     try {
       // Add to updating set to show loading state
       updatingStatuses.add(applicationId);
       updatingStatuses = updatingStatuses; // Trigger reactivity
 
-      console.log('Calling API service...');
+      console.log("Calling API service...");
       // Update the status via API
-      const result = await apiService.updateApplicationStatus(applicationId, newStatus);
-      console.log('API call successful:', result);
-      
+      const result = await apiService.updateApplicationStatus(
+        applicationId,
+        newStatus
+      );
+      console.log("API call successful:", result);
+
       // Update the local state
-      applications = applications.map(app => 
-        app.id === applicationId 
-          ? { ...app, status: newStatus }
-          : app
+      applications = applications.map((app) =>
+        app.id === applicationId ? { ...app, status: newStatus } : app
       );
     } catch (err) {
-      console.error('Full error object:', err);
-      error = err instanceof Error ? err.message : "Failed to update application status";
+      console.error("Full error object:", err);
+      error =
+        err instanceof Error
+          ? err.message
+          : "Failed to update application status";
       console.error("Error updating application status:", err);
     } finally {
       // Remove from updating set
@@ -94,6 +106,9 @@
       await apiService.deleteApplication(id);
       // Remove the deleted application from the list
       applications = applications.filter((app) => app.id !== id);
+      // Close the modal
+      showDeleteModal = false;
+      applicationToDelete = null;
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to delete application";
@@ -101,6 +116,22 @@
     } finally {
       deleteLoading = false;
     }
+  }
+
+  function showDeleteConfirmation(application: any) {
+    applicationToDelete = application;
+    showDeleteModal = true;
+  }
+
+  function handleDeleteConfirm() {
+    if (applicationToDelete) {
+      handleDelete(applicationToDelete.id);
+    }
+  }
+
+  function handleDeleteCancel() {
+    showDeleteModal = false;
+    applicationToDelete = null;
   }
 
   onMount(() => {
@@ -197,7 +228,10 @@
                   <div class="status-dropdown">
                     {#if updatingStatuses.has(application.id)}
                       <span class="badge bg-secondary">
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        <span
+                          class="spinner-border spinner-border-sm me-1"
+                          role="status"
+                        ></span>
                         Updating...
                       </span>
                     {:else}
@@ -209,7 +243,10 @@
                         on:change={(e) => {
                           const target = e.target as HTMLSelectElement | null;
                           if (target) {
-                            updateApplicationStatus(application.id, parseInt(target.value));
+                            updateApplicationStatus(
+                              application.id,
+                              parseInt(target.value)
+                            );
                           }
                         }}
                       >
@@ -248,15 +285,8 @@
                     {/if}
                     <button
                       class="btn btn-sm btn-outline-danger"
-                      on:click|stopPropagation={() => {
-                        if (
-                          confirm(
-                            `Are you sure you want to delete the application for ${application.position} at ${application.company}? This action cannot be undone.`
-                          )
-                        ) {
-                          handleDelete(application.id);
-                        }
-                      }}
+                      on:click|stopPropagation={() =>
+                        showDeleteConfirmation(application)}
                       disabled={deleteLoading}
                       title="Delete Application"
                       aria-label="Delete Application"
@@ -277,7 +307,11 @@
       <div class="row g-3">
         {#each applications as application (application.id)}
           <div class="col-12">
-            <ApplicationCard {application} onDelete={handleDelete} onStatusUpdate={updateApplicationStatus} />
+            <ApplicationCard
+              {application}
+              onDelete={handleDelete}
+              onStatusUpdate={updateApplicationStatus}
+            />
           </div>
         {/each}
       </div>
@@ -300,6 +334,16 @@
     <i class="bi bi-plus" style="font-size: 1.5rem;"></i>
   </a>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDeleteModal
+  show={showDeleteModal}
+  applicationPosition={applicationToDelete ? applicationToDelete.position : ""}
+  applicationCompany={applicationToDelete ? applicationToDelete.company : ""}
+  on:confirm={handleDeleteConfirm}
+  on:cancel={handleDeleteCancel}
+  isLoading={deleteLoading}
+/>
 
 <style>
   .table {
@@ -384,7 +428,7 @@
 
   .status-select:focus {
     box-shadow: 0 0 0 0.2rem rgba(177, 178, 255, 0.25);
-    border-color: #B1B2FF;
+    border-color: #b1b2ff;
   }
 
   .status-select option {
