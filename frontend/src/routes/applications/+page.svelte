@@ -40,7 +40,10 @@
   ];
 
   function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    // Create date and ensure we display the intended date regardless of timezone
+    const date = new Date(dateString);
+    // Use UTC methods to avoid timezone shifts when displaying
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

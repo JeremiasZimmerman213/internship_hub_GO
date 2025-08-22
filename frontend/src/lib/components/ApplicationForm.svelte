@@ -10,7 +10,14 @@
   let position = initialData?.position || '';
   let status = initialData?.status ?? 0;
   let location = initialData?.location || '';
-  let appliedDate = initialData?.applied_date ? new Date(initialData.applied_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  let appliedDate = initialData?.applied_date ? 
+    (() => {
+      const date = new Date(initialData.applied_date);
+      // Compensate for timezone to get the intended date
+      const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+      return adjustedDate.toISOString().split('T')[0];
+    })() : 
+    new Date().toISOString().split('T')[0];
   let term = initialData?.term || '';
   let note = initialData?.note || '';
   let resumeFile: File | null = null;
@@ -80,7 +87,9 @@
     formData.append('position', position.trim());
     formData.append('status', status.toString());
     formData.append('location', location.trim());
-    formData.append('applied_date', new Date(appliedDate).toISOString());
+    // Fix timezone issue by creating date at noon local time to avoid day shifts
+    const localDate = new Date(appliedDate + 'T12:00:00');
+    formData.append('applied_date', localDate.toISOString());
     formData.append('term', term.trim());
     formData.append('note', note.trim());
     if (resumeFile) {
