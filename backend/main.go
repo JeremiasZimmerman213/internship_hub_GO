@@ -57,6 +57,8 @@ func main() {
 
 	r.POST("/auth/signup", controllers.CreateUser)
 	r.POST("/auth/login", controllers.Login)
+	r.GET("/auth/verify-email", controllers.VerifyEmail)
+	r.POST("/auth/resend-verification", controllers.ResendVerification)
 
 	protected := r.Group("/")
 	protected.Use(middleware.CheckAuth)
