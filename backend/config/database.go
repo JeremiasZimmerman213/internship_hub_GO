@@ -39,5 +39,6 @@ func ConnectDB() {
 	fmt.Println("Connected to PostgreSQL DB successfully.")
 	DB = database
 
-	DB.AutoMigrate(&models.Application{}, &models.User{})
+	// Add EmailVerification to the auto-migration
+	DB.AutoMigrate(&models.Application{}, &models.User{}, &models.EmailVerification{})
 }
