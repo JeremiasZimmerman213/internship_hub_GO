@@ -4,12 +4,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 console.log('AuthService API_BASE_URL:', API_BASE_URL);
 
 export interface LoginCredentials {
-    username: string;
+    username_or_email: string;
     password: string;
 }
 
 export interface RegisterCredentials {
     username: string;
+    email: string;
     password: string;
 }
 
@@ -28,6 +29,14 @@ class AuthService {
         this.baseURL = baseURL;
     }
 
+    // Custom HTTP error to propagate status and payload
+    private buildError(response: Response, payload: any): Error {
+        const err: any = new Error(payload?.error || `HTTP ${response.status}: ${response.statusText}`);
+        err.status = response.status;
+        err.payload = payload;
+        return err as Error & { status?: number; payload?: any };
+    }
+
     // Generic request method
     private async request<T>(
         endpoint: string,
@@ -44,16 +53,17 @@ class AuthService {
                 },
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : {};
 
             if (!response.ok) {
-                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+                throw this.buildError(response, data);
             }
 
             return data;
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            throw new Error(errorMessage);
+            if (error instanceof Error) throw error;
+            throw new Error('Unknown error occurred');
         }
     }
 
@@ -90,27 +100,32 @@ class AuthService {
             authActions.setAuth(authData.token, authData.user);
 
             return authData;
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Login failed';
+        } catch (error: unknown) {
+            const err = error as Error & { status?: number; payload?: any };
+            // Friendly message if backend says needs verification
+            if ((err as any)?.status === 401 && (err as any)?.payload?.needs_verification) {
+                authActions.setError('Please verify your email address before logging in.');
+                throw err;
+            }
+            const errorMessage = err?.message || 'Login failed';
             authActions.setError(errorMessage);
-            throw error;
+            throw err;
         } finally {
             authActions.setLoading(false);
         }
     }
 
     // Register user
-    async register(credentials: RegisterCredentials): Promise<{ user: User }> {
+    async register(credentials: RegisterCredentials): Promise<{ message: string; user_id?: number }> {
         authActions.setLoading(true);
         authActions.clearError();
 
         try {
-            const response = await this.request<{ data: User }>('/auth/signup', {
+            const response = await this.request<{ message: string; user_id?: number }>('/auth/signup', {
                 method: 'POST',
                 body: JSON.stringify(credentials),
             });
-
-            return { user: response.data };
+            return { message: response.message, user_id: response.user_id };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Registration failed';
             authActions.setError(errorMessage);
@@ -135,6 +150,21 @@ class AuthService {
         });
 
         return response.user;
+    }
+
+    // Verify email using token
+    async verifyEmail(token: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/auth/verify-email?token=${encodeURIComponent(token)}`, {
+            method: 'GET',
+        });
+    }
+
+    // Resend verification email
+    async resendVerification(email: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/auth/resend-verification`, {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
     }
 }
 

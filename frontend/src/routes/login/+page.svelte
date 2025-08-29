@@ -6,15 +6,18 @@
   
   let isLogin = true;
   let username = '';
+  let email = '';
   let password = '';
   let confirmPassword = '';
   let error = '';
   let isLoading = false;
+  let showResend = false;
 
   function toggleMode() {
     isLogin = !isLogin;
     error = '';
-    username = '';
+  username = '';
+  email = '';
     password = '';
     confirmPassword = '';
   }
@@ -23,7 +26,7 @@
     event.preventDefault();
     error = '';
     
-    if (!username || !password) {
+    if (!username || !password || (!isLogin && !email)) {
       error = 'Please fill in all required fields.';
       return;
     }
@@ -37,19 +40,25 @@
     
     try {
       if (isLogin) {
-        // Login
-        await authService.login({ username, password });
+        // Login with username or email
+        const username_or_email = username;
+        await authService.login({ username_or_email, password });
         goto('/applications'); // Redirect to applications page
       } else {
         // Register
-        await authService.register({ username, password });
-        alert('Registration successful! Please log in.');
+        await authService.register({ username, email, password });
+        alert('Registration successful! Please check your email to verify your account.');
         isLogin = true; // Switch to login mode
+        email = '';
         password = '';
         confirmPassword = '';
       }
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'An error occurred';
+    } catch (err: unknown) {
+      const e = err as any;
+      error = e?.message || 'An error occurred';
+      if (e?.payload?.needs_verification) {
+        showResend = true;
+      }
     } finally {
       isLoading = false;
     }
@@ -115,13 +124,28 @@
                     type="text" 
                     class="form-control form-control-lg" 
                     id="username" 
-                    placeholder="Username"
+                    placeholder={isLogin ? 'Email or Username' : 'Username'}
                     bind:value={username} 
                     required 
                     autocomplete="username" 
                   />
-                  <label for="username">Username</label>
+                  <label for="username">{isLogin ? 'Email or Username' : 'Username'}</label>
                 </div>
+
+                {#if !isLogin}
+                <div class="form-floating mb-4">
+                  <input 
+                    type="email" 
+                    class="form-control form-control-lg" 
+                    id="email" 
+                    placeholder="Email"
+                    bind:value={email} 
+                    required 
+                    autocomplete="email" 
+                  />
+                  <label for="email">Email</label>
+                </div>
+                {/if}
 
                 <div class="form-floating mb-4">
                   <input 
@@ -158,6 +182,30 @@
                   <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     <div>{error}</div>
+                  </div>
+                {/if}
+
+                {#if showResend && !isLogin}
+                  <!-- no resend on register error -->
+                {/if}
+                {#if showResend && isLogin}
+                  <div class="mb-4 text-center">
+                    <button class="btn btn-outline-primary" type="button" on:click={async () => {
+                      try {
+                        let targetEmail = username;
+                        if (!targetEmail.includes('@')) {
+                          const input = window.prompt('Enter the email associated with your account to resend the verification link:');
+                          if (!input) return;
+                          targetEmail = input.trim();
+                        }
+                        await authService.resendVerification(targetEmail);
+                        error = '';
+                        alert('Verification email resent. Please check your inbox.');
+                        showResend = false;
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : 'Failed to resend verification email');
+                      }
+                    }}>Resend Verification Email</button>
                   </div>
                 {/if}
 

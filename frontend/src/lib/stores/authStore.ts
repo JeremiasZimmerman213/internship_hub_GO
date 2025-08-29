@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 export interface User {
     id: number;
     username: string;
+    email?: string;
 }
 
 export interface AuthState {
